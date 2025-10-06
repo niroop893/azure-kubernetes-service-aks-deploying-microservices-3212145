@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns-posthub-local
+  labels:
+    name: ns-posthub-local
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
