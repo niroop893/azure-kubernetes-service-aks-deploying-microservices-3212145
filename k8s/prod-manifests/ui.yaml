@@ -1,21 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ui--env--
-  namespace: ns-posthub--env--
+  name: ui-local
+  namespace: ns-posthub-local
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ui--env--
+      app: ui-local
   template:
     metadata:
       labels:
-        app: ui--env--
+        app: ui-local
     spec:
       containers:
-      - name: ui--env--
-        image: __ImageTag__
+      - name: ui-local
+        image: posthub-ui:latest
+        imagePullPolicy: Never
+        env:
+        - name: API_URL
+          value: "http://localhost"
         resources:
           requests:
             memory: "250Mi"
@@ -26,18 +30,17 @@ spec:
         ports:
         - containerPort: 3000
 
-
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name:  ui-service--env--
-  namespace: ns-posthub--env--
+  name: ui-service-local
+  namespace: ns-posthub-local
 spec:
   selector:
-    app:  ui--env--
-  type:  ClusterIP
+    app: ui-local
+  type: ClusterIP
   ports:
-  - name:  ui--env--
-    port:  3000
-    targetPort:  3000
+  - name: ui-local
+    port: 3000
+    targetPort: 3000
