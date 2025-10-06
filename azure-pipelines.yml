@@ -1,0 +1,153 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerRegistry: 'local'
+  kubernetesServiceConnection: 'docker-desktop'
+  namespace: 'ns-posthub-local'
+
+stages:
+- stage: Build
+  displayName: 'Build and Push Images'
+  jobs:
+  - job: BuildImages
+    displayName: 'Build Docker Images'
+    steps:
+    - task: Docker@2
+      displayName: 'Build UI Image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'ui/Dockerfile'
+        buildContext: 'ui'
+        tags: |
+          posthub-ui:$(Build.BuildId)
+          posthub-ui:latest
+
+    - task: Docker@2
+      displayName: 'Build Users Image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'users/Dockerfile'
+        buildContext: 'users'
+        tags: |
+          posthub-users:$(Build.BuildId)
+          posthub-users:latest
+
+    - task: Docker@2
+      displayName: 'Build Comments Image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'comments/Dockerfile'
+        buildContext: 'comments'
+        tags: |
+          posthub-comments:$(Build.BuildId)
+          posthub-comments:latest
+
+    - task: Docker@2
+      displayName: 'Build Posts Image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'posts/Dockerfile'
+        buildContext: 'posts'
+        tags: |
+          posthub-posts:$(Build.BuildId)
+          posthub-posts:latest
+
+    - task: Docker@2
+      displayName: 'Build PostHub Image'
+      inputs:
+        command: 'build'
+        Dockerfile: 'posthub/Dockerfile'
+        buildContext: 'posthub'
+        tags: |
+          posthub-main:$(Build.BuildId)
+          posthub-main:latest
+
+- stage: Deploy
+  displayName: 'Deploy to Kubernetes'
+  dependsOn: Build
+  jobs:
+  - job: DeployToK8s
+    displayName: 'Deploy to Docker Desktop K8s'
+    steps:
+    - task: Kubernetes@1
+      displayName: 'Create Namespace'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        command: 'apply'
+        useConfigurationFile: true
+        configurationType: 'inline'
+        inline: |
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: $(namespace)
+
+    - task: Kubernetes@1
+      displayName: 'Create JWT Secret'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'apply'
+        useConfigurationFile: true
+        configurationType: 'inline'
+        inline: |
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: jwtsecret
+            namespace: $(namespace)
+          type: Opaque
+          data:
+            JWTKEY: c3VwZXJzZWNyZXRrZXkxMjM0NTY3ODk=
+
+    - task: replacetokens@5
+      displayName: 'Replace tokens in K8s manifests'
+      inputs:
+        rootDirectory: 'k8s/local-manifests'
+        targetFiles: '**/*.yaml'
+        encoding: 'auto'
+        tokenPattern: 'custom'
+        tokenPrefix: '__'
+        tokenSuffix: '__'
+
+    - task: Kubernetes@1
+      displayName: 'Deploy MongoDB Services'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'apply'
+        arguments: '-f k8s/local-manifests/mongo/'
+
+    - task: Kubernetes@1
+      displayName: 'Deploy NATS'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'apply'
+        arguments: '-f k8s/local-manifests/nats-eventhub.yaml'
+
+    - task: Kubernetes@1
+      displayName: 'Deploy Application Services'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'apply'
+        arguments: '-f k8s/local-manifests/services/'
+
+    - task: Kubernetes@1
+      displayName: 'Deploy Ingress'
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceEndpoint: '$(kubernetesServiceConnection)'
+        namespace: '$(namespace)'
+        command: 'apply'
+        arguments: '-f k8s/local-manifests/ingress-service.yaml'
