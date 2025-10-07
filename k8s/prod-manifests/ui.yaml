@@ -16,7 +16,7 @@ spec:
       containers:
       - name: ui-local
         image: ui:v1.0
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         resources:
           requests:
             memory: "250Mi"
