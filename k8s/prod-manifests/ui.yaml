@@ -17,6 +17,21 @@ spec:
       - name: ui-local
         image: ui:v1.0
         imagePullPolicy: IfNotPresent
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://localhost"
+        - name: API_URL
+          value: "http://localhost"
+        - name: USERS_SERVICE_URL
+          value: "http://users-service-local:3000"
+        - name: POSTS_SERVICE_URL
+          value: "http://posts-service-local:3000"
+        - name: COMMENTS_SERVICE_URL
+          value: "http://comments-service-local:3000"
+        - name: POSTHUB_SERVICE_URL
+          value: "http://posthub-service-local:3000"
         resources:
           requests:
             memory: "250Mi"
