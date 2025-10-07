@@ -24,7 +24,7 @@ spec:
       containers:
       - name: users-local
         image: users:v1.0
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
         - name: MONGO_URI
           value: mongodb://users-mongo-service:27020/users
