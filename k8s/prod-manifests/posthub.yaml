@@ -24,7 +24,7 @@ spec:
       containers:
       - name: posthub-local
         image: posthub:v1.0
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
         - name: MONGO_URI
           value: mongodb://posthub-mongo-service:27020/posthub
