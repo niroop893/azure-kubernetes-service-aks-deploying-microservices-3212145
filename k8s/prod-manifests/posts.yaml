@@ -24,7 +24,7 @@ spec:
       containers:
       - name: posts-local
         image: posts:v1.0
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
         - name: MONGO_URI
           value: mongodb://posts-mongo-service:27020/posts
