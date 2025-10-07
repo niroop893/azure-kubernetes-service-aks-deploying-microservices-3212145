@@ -24,7 +24,7 @@ spec:
       containers:
       - name: comments-local
         image: comments:v1.0
-        imagePullPolicy: Never
+        imagePullPolicy: IfNotPresent
         env:
         - name: MONGO_URI
           value: mongodb://comments-mongo-service:27020/comments
